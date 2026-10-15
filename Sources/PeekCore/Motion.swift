@@ -35,6 +35,12 @@ public enum Timing {
     public static let typeOn = 1.5
     public static let bubbleStays = 10.0
     public static let bangBlink = 0.5
+
+    /// How often the app's clock ticks: smoothly while anything moves, slowly while the pet just
+    /// peeks. A peek can last hours, and a 60 Hz timer on an idle agent shows up as battery drain.
+    public static func tickInterval(phase: Director.Phase, animating: Bool) -> Double {
+        animating || phase != .peeking ? 1.0 / 60 : 0.1
+    }
 }
 
 /// Distances, in points.
@@ -91,9 +97,10 @@ public struct Motion: Sendable {
 
     private var walkTarget: Double? {
         switch animation {
-        case .enter, .enterPeeking: 0
+        // A hop walks home first: a click during the walk-in can start one from mid-walk.
+        case .enter, .enterPeeking, .hop: 0
         case .leave: Geometry.offstage
-        case .hop, .duck, .unduck: nil
+        case .duck, .unduck: nil
         }
     }
 

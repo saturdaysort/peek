@@ -2,6 +2,10 @@ import Foundation
 
 /// Turns Claude's final Markdown message into one line of plain text for a speech bubble.
 public enum TextTrimmer {
+    /// The bubble shows about 90 characters. Capping well above that keeps a runaway one-line
+    /// message (a minified blob near the hook's 1 MB cap) from being laid out on every frame.
+    public static let maxLength = 400
+
     /// The first line of prose, cleaned. Code fences (and everything inside them), table rows
     /// and horizontal rules are skipped. Nil when nothing usable is left.
     public static func summary(_ raw: String) -> String? {
@@ -13,8 +17,8 @@ public enum TextTrimmer {
                 continue
             }
             if inFence || trimmed.hasPrefix("|") || isRule(trimmed) { continue }
-            let cleaned = clean(trimmed)
-            if !cleaned.isEmpty { return cleaned }
+            let cleaned = clean(String(trimmed.prefix(maxLength * 4)))
+            if !cleaned.isEmpty { return String(cleaned.prefix(maxLength)) }
         }
         return nil
     }

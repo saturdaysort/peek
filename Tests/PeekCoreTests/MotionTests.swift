@@ -49,6 +49,19 @@ private func close(_ a: Double, _ b: Double) -> Bool { abs(a - b) < 1e-9 }
         #expect(m.pose(at: 0.2).y == 0)
     }
 
+    @Test func hopFromMidWalkWalksHomeFirst() {
+        // Clicking during the walk-in with more messages queued hops from wherever the pet is.
+        let m = Motion(.hop, from: Pose(x: 50, y: 0))
+        #expect(m.pose(at: 0.05).walking)
+        #expect(m.pose(at: m.duration) == .home)
+    }
+
+    @Test func idleTickIsSlowWhilePeeking() {
+        #expect(Timing.tickInterval(phase: .peeking, animating: false) == 0.1)
+        #expect(Timing.tickInterval(phase: .peeking, animating: true) == 1.0 / 60)
+        #expect(Timing.tickInterval(phase: .showing, animating: false) == 1.0 / 60)
+    }
+
     @Test func leavingFromThePeekStaysDucked() {
         let m = Motion(.leave, from: Pose(x: 0, y: -30))
         #expect(m.pose(at: 0.3).y == -30)

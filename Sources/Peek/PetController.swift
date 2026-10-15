@@ -76,6 +76,7 @@ final class PetController {
     private func start(_ animation: Director.Animation) {
         motion = Motion(animation, from: pose)
         motionStart = now
+        if clock != nil { scheduleClock(every: Timing.tickInterval(phase: director.phase, animating: true)) }
         if !panel.isVisible {
             panel.anchor()
             panel.orderFrontRegardless()
@@ -85,7 +86,14 @@ final class PetController {
     private func startClock() {
         guard clock == nil else { return }
         lastTick = now
-        let timer = Timer(timeInterval: 1.0 / 60, repeats: true) { [weak self] _ in self?.tick() }
+        scheduleClock(every: Timing.tickInterval(phase: director.phase, animating: motion != nil))
+    }
+
+    private func scheduleClock(every interval: Double) {
+        if let clock, clock.timeInterval == interval { return }
+        clock?.invalidate()
+        let timer = Timer(timeInterval: interval, repeats: true) { [weak self] _ in self?.tick() }
+        timer.tolerance = interval * 0.2
         RunLoop.main.add(timer, forMode: .common)
         clock = timer
     }
@@ -123,6 +131,9 @@ final class PetController {
             motion = nil
             pose = .offstage
             panel.orderOut(nil)
+        } else {
+            // Drop to a slow tick while the pet just peeks; any new animation speeds it back up.
+            scheduleClock(every: Timing.tickInterval(phase: director.phase, animating: motion != nil))
         }
     }
 

@@ -35,6 +35,11 @@ import Testing
         #expect(TextTrimmer.summary("Café déployé, 完了") == "Café déployé, 完了")
     }
 
+    @Test func capsRunawayLines() {
+        let summary = TextTrimmer.summary(String(repeating: "x", count: 100_000))
+        #expect(summary?.count == TextTrimmer.maxLength)
+    }
+
     @Test func keepsSnakeCase() {
         #expect(TextTrimmer.summary("renamed my_var") == "renamed my_var")
     }
