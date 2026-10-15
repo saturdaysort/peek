@@ -68,6 +68,14 @@ import Testing
         #expect(!text.contains(#"\u2014"#))   // the JSON escape Python writes by default
     }
 
+    @Test func theFileKeepsItsPermissions() throws {
+        try write(["model": "opus"])
+        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: settings.path)
+        _ = try run("install")
+        let mode = try FileManager.default.attributesOfItem(atPath: settings.path)[.posixPermissions] as? Int
+        #expect(mode == 0o600)
+    }
+
     @Test func aBackupIsWrittenBeforeChanging() throws {
         try write(["model": "opus"])
         _ = try run("install")

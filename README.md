@@ -17,14 +17,31 @@ session.
 scripts/install.sh
 ```
 
+This builds `Peek.app`, installs it to `~/Applications`, and launches it.
+
+Next, Peek's hooks go into `~/.claude/settings.json`. To see exactly what will change, run
+the installer on a copy first and compare:
+
+```bash
+cp ~/.claude/settings.json "$TMPDIR/settings-preview.json"
+```
+
+```bash
+python3 -I scripts/hooks.py install --settings "$TMPDIR/settings-preview.json"
+```
+
+```bash
+diff -u ~/.claude/settings.json "$TMPDIR/settings-preview.json"
+```
+
+Then install them for real:
+
 ```bash
 python3 -I scripts/hooks.py install
 ```
 
-The first command builds `Peek.app`, installs it to `~/Applications`, and launches it.
-
-The second registers Peek's hooks in `~/.claude/settings.json` and turns off the
-everything-claude-code plugin's Script Editor banner. It writes a backup of that file first.
+This registers Peek's hooks and turns off the everything-claude-code plugin's Script Editor
+banner. It writes a backup of the file first and keeps its permissions.
 
 ## Uninstall
 

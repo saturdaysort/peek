@@ -42,6 +42,9 @@ def save(path, data):
         # that change in the user's file are the ones Peek adds or removes.
         json.dump(data, f, indent=2, ensure_ascii=False)
         f.write("\n")
+    if os.path.exists(path):
+        # The temp file gets the umask's mode; a settings file kept at 600 should stay 600.
+        shutil.copymode(path, tmp)
     os.replace(tmp, path)
 
 
