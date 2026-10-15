@@ -43,4 +43,21 @@ import Testing
     @Test func keepsSnakeCase() {
         #expect(TextTrimmer.summary("renamed my_var") == "renamed my_var")
     }
+
+    @Test func skipsTildeFences() {
+        #expect(TextTrimmer.summary("~~~\nlet x = 1\n~~~\nThe build passes.") == "The build passes.")
+        // A backtick line inside a tilde fence is code, not the end of the fence.
+        #expect(TextTrimmer.summary("~~~md\n```\nnot this\n~~~\nThis.") == "This.")
+    }
+
+    @Test func keepsDunderNames() {
+        #expect(TextTrimmer.summary("fixed __init__ in the parser") == "fixed __init__ in the parser")
+        #expect(TextTrimmer.summary("fixed `__init__`") == "fixed __init__")
+    }
+
+    @Test func keepsALoneStarBetweenDigits() {
+        #expect(TextTrimmer.summary("2*3 is 6") == "2*3 is 6")
+        #expect(TextTrimmer.summary("2**3 is 8") == "2**3 is 8")
+        #expect(TextTrimmer.summary("an *italic* and a ***loud*** word") == "an italic and a loud word")
+    }
 }
