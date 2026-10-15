@@ -9,9 +9,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Settings.registerDefaults()
         PixelFont.register()
         let controller = PetController(quietUntil: Settings.quietUntil)
+        controller.installMenu()
+        controller.scheduleQuietEnd()
         self.controller = controller
         watcher = InboxWatcher(inbox: .standard) { controller.receive($0) }
         watcher?.start()
+        LoginItem.apply()
         Log.info("launched, font \(PixelFont.font.fontName)")
     }
 
