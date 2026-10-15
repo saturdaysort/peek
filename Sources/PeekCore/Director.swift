@@ -83,7 +83,11 @@ public struct Director: Sendable {
             }
             return [.chirp]
         case .showing:
-            guard isGreeting else { return [.chirp] }   // never interrupt a message being read
+            if !isGreeting {
+                // Never interrupt a message being read, but a newer one from the same session
+                // replaced it in place: give it the full 10 seconds.
+                return index == queue.currentIndex ? [.chirp, .restartBubbleTimer] : [.chirp]
+            }
             isGreeting = false
             queue.show(index: index)
             return [.chirp, .animate(.hop), .restartBubbleTimer]

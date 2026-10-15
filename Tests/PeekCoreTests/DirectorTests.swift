@@ -99,6 +99,12 @@ private func showing(_ messages: Message...) -> Director {
         #expect(d.queue.count == 1)
     }
 
+    @Test func replacingTheMessageBeingReadRestartsItsCountdown() {
+        var d = showing(msg("a", "old"), msg("b"))
+        #expect(d.receive(msg("a", "new"), now: now) == [.chirp, .restartBubbleTimer])
+        #expect(d.receive(msg("b", "newer"), now: now) == [.chirp])   // not on screen: no restart
+    }
+
     @Test func scrollFlipsWithoutOpening() {
         var d = showing(msg("a"), msg("b"), msg("c"))
         #expect(d.scroll(by: 1) == [.restartBubbleTimer])
