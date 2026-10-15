@@ -151,6 +151,27 @@ private func showing(_ messages: Message...) -> Director {
         #expect(d.phase == .hidden)
     }
 
+    @Test func quietHourEndingMidExitPeeksInsteadOfHiding() {
+        var d = showing(msg("a"))
+        _ = d.startQuiet(until: now.addingTimeInterval(3600))
+        #expect(d.phase == .leaving)
+        #expect(d.quietEnded() == [.animate(.enterPeeking)])
+        #expect(d.phase == .peeking)
+        #expect(d.badgeCount == 1)
+    }
+
+    @Test func quietHourEndingMidGreetingExitShowsTheMessageNotTheGreeting() {
+        var d = Director()
+        _ = d.startQuiet(until: now.addingTimeInterval(3600))
+        _ = d.greet()
+        _ = d.entranceFinished()
+        _ = d.receive(msg("a"), now: now)   // queued silently under the greeting
+        _ = d.clicked()                      // dismisses the greeting: walking out
+        _ = d.quietEnded()
+        _ = d.clicked()
+        #expect(d.bubbleMessage == msg("a"))
+    }
+
     @Test func startingQuietWhileShowingLeavesButKeepsTheQueue() {
         var d = showing(msg("a"))
         #expect(d.startQuiet(until: now.addingTimeInterval(3600)) == [.animate(.leave)])

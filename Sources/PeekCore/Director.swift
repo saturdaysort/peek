@@ -182,7 +182,10 @@ public struct Director: Sendable {
 
     public mutating func quietEnded() -> [Effect] {
         quietUntil = nil
-        guard phase == .hidden, !queue.isEmpty else { return [] }
+        // Mid-exit counts as gone: the hour may have started by sending the pet off, and letting
+        // it finish leaving would strand the unread messages offstage.
+        guard phase == .hidden || phase == .leaving, !queue.isEmpty else { return [] }
+        isGreeting = false
         queue.showOldest()
         phase = .peeking
         return [.animate(.enterPeeking)]
