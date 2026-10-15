@@ -45,6 +45,9 @@ banner. It writes a backup of the file first and keeps its permissions.
 
 ## Uninstall
 
+First, right-click the pet and turn off **Open at login**, so macOS drops the login item.
+If Peek is already gone, remove it under System Settings > General > Login Items instead.
+
 ```bash
 python3 -I scripts/hooks.py uninstall
 ```
@@ -55,6 +58,17 @@ pkill -x Peek
 
 ```bash
 rm -rf ~/Applications/Peek.app
+```
+
+Peek also leaves its inbox folder and its preferences (sound, open at login, quiet hour) in
+the `dev.longbrook.peek` defaults domain:
+
+```bash
+rm -rf "$HOME/Library/Application Support/Peek"
+```
+
+```bash
+defaults delete dev.longbrook.peek
 ```
 
 ## Develop
