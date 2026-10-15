@@ -1,7 +1,7 @@
 # Peek: a desktop pet for Claude Code notifications
 
 Date: 2026-10-15
-Status: approved design, awaiting spec review
+Status: implemented 2026-10-15
 
 ## Goal
 
