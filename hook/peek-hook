@@ -1,0 +1,29 @@
+#!/bin/zsh -f
+# Peek hook: hands one Claude Code Stop/Notification event to Peek.app.
+#
+# Claude Code runs this with the event JSON on stdin. It writes
+#   <inbox>/<epoch-ms>-<pid>.event  =  line 1: Desktop session id, then the JSON (max 1 MB)
+# through a temp file and a rename, so Peek never reads a half-written file.
+#
+# Every path exits 0: a notification helper must never block or fail a Claude turn.
+# The inbox path is duplicated in Sources/PeekCore/Inbox.swift (Inbox.relativePath);
+# InboxTests.hookAndAppAgreeOnTheInboxPath fails if they drift apart.
+
+zmodload zsh/datetime 2>/dev/null
+
+id=${CLAUDE_CODE_HOST_SESSION_ID:-}
+[[ -n $id ]] || exit 0   # not a Claude Desktop session: there is no window to link back to
+
+inbox=${PEEK_INBOX:-$HOME/Library/Application Support/Peek/inbox}
+umask 077
+mkdir -p -- "$inbox" 2>/dev/null || exit 0
+
+integer ms=$(( EPOCHREALTIME * 1000 ))
+tmp="$inbox/.$ms-$$.tmp"
+{
+  print -r -- "$id"
+  head -c 1048576
+} > "$tmp" 2>/dev/null && mv -f -- "$tmp" "$inbox/$ms-$$.event" 2>/dev/null
+cat > /dev/null           # drain anything past the cap so Claude never writes into a closed pipe
+rm -f -- "$tmp" 2>/dev/null
+exit 0
