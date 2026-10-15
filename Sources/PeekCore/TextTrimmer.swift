@@ -1,0 +1,37 @@
+import Foundation
+
+/// Turns Claude's final Markdown message into one line of plain text for a speech bubble.
+public enum TextTrimmer {
+    /// The first line of prose, cleaned. Code fences (and everything inside them), table rows
+    /// and horizontal rules are skipped. Nil when nothing usable is left.
+    public static func summary(_ raw: String) -> String? {
+        var inFence = false
+        for line in raw.split(omittingEmptySubsequences: false, whereSeparator: \.isNewline) {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            if trimmed.hasPrefix("```") {
+                inFence.toggle()
+                continue
+            }
+            if inFence || trimmed.hasPrefix("|") || isRule(trimmed) { continue }
+            let cleaned = clean(trimmed)
+            if !cleaned.isEmpty { return cleaned }
+        }
+        return nil
+    }
+
+    /// `---`, `***`, `___`, `===`, with or without spaces between.
+    static func isRule(_ line: String) -> Bool {
+        let marks = line.filter { !$0.isWhitespace }
+        guard marks.count >= 3, let first = marks.first, "-*_=".contains(first) else { return false }
+        return marks.allSatisfy { $0 == first }
+    }
+
+    static func clean(_ line: String) -> String {
+        var s = line
+        s = s.replacingOccurrences(of: #"\[([^\]]*)\]\([^)]*\)"#, with: "$1", options: .regularExpression)
+        s = s.replacingOccurrences(of: #"^(#{1,6}\s+|[-*+]\s+|\d+[.)]\s+|>\s*)"#, with: "", options: .regularExpression)
+        s = s.replacingOccurrences(of: #"\*\*|__|\*|`"#, with: "", options: .regularExpression)
+        s = s.replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+        return s.trimmingCharacters(in: .whitespaces)
+    }
+}
