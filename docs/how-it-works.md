@@ -17,6 +17,11 @@ Peek turns that hook off with the plugin's own switch, `ECC_DISABLED_HOOKS=stop:
 in the `env` block of `~/.claude/settings.json`. The plugin itself is untouched and still
 updates normally.
 
+Peek doesn't depend on that plugin. `scripts/hooks.py install` adds the switch only when
+`~/.claude/plugins/installed_plugins.json` lists `everything-claude-code` (from any
+marketplace). Without it, only Peek's own hook entries are written. Install the plugin later
+and the banner comes back until `install` is run again.
+
 ## How Peek knows which session pinged
 
 Every process a Claude Desktop Code session starts, hooks included, inherits

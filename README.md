@@ -40,8 +40,10 @@ Then install them for real:
 python3 -I scripts/hooks.py install
 ```
 
-This registers Peek's hooks and turns off the everything-claude-code plugin's Script Editor
-banner. It writes a backup of the file first and keeps its permissions.
+This registers Peek's hooks. Peek doesn't need any plugin. If you use the
+everything-claude-code plugin, it also turns off that plugin's Script Editor banner; if you
+install that plugin later, run this again. It writes a backup of the file first and keeps
+its permissions.
 
 ## Uninstall
 

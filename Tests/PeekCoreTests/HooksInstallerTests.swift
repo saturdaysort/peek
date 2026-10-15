@@ -5,11 +5,19 @@ import Testing
     let dir = TestSupport.tempDirectory()
     var settings: URL { dir.appendingPathComponent("settings.json") }
 
-    func run(_ action: String) throws -> Int32 {
+    /// Runs hooks.py against a temp settings file. `plugins` stands in for Claude's
+    /// ~/.claude/plugins/installed_plugins.json; nil means that file doesn't exist.
+    func run(_ action: String, plugins: [String]? = ["everything-claude-code@everything-claude-code"]) throws -> Int32 {
+        let pluginsFile = dir.appendingPathComponent("installed_plugins.json")
+        try? FileManager.default.removeItem(at: pluginsFile)
+        if let plugins {
+            let entries = Dictionary(uniqueKeysWithValues: plugins.map { ($0, [["scope": "user"]]) })
+            try JSONSerialization.data(withJSONObject: ["version": 2, "plugins": entries]).write(to: pluginsFile)
+        }
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/python3")
         process.arguments = ["-I", TestSupport.repoRoot.appendingPathComponent("scripts/hooks.py").path,
-                             action, "--settings", settings.path]
+                             action, "--settings", settings.path, "--plugins", pluginsFile.path]
         process.standardOutput = FileHandle.nullDevice
         try process.run()
         process.waitUntilExit()
@@ -33,6 +41,25 @@ import Testing
         #expect(hooks["Notification"]?.first?["matcher"] as? String == "permission_prompt|elicitation_dialog")
         let command = (hooks["Stop"]?.first?["hooks"] as? [[String: Any]])?.first?["command"] as? String
         #expect(command?.contains("$HOME/Applications/Peek.app/Contents/Resources/peek-hook") == true)
+    }
+
+    @Test func withoutThePluginTheBannerSwitchIsLeftOut() throws {
+        #expect(try run("install", plugins: ["superpowers@claude-plugins-official"]) == 0)
+        let s = try read()
+        #expect(s["env"] == nil)
+        #expect((s["hooks"] as? [String: Any])?["Stop"] != nil)
+    }
+
+    @Test func noPluginsFileMeansNoPlugin() throws {
+        #expect(try run("install", plugins: nil) == 0)
+        #expect(try read()["env"] == nil)
+    }
+
+    @Test func uninstallRemovesTheSwitchEvenAfterThePluginIsGone() throws {
+        _ = try run("install")
+        _ = try run("uninstall", plugins: [])
+        #expect(try read()["env"] == nil)
+        #expect(try read()["hooks"] == nil)
     }
 
     @Test func installTwiceChangesNothing() throws {

@@ -2,9 +2,11 @@
 """Add or remove Peek's entries in Claude Code's ~/.claude/settings.json.
 
 install   registers Peek's hook for Stop and Notification (permission_prompt and
-          elicitation_dialog), and turns off the everything-claude-code plugin's
-          osascript banner (the one macOS shows as Script Editor) through its
-          ECC_DISABLED_HOOKS switch. The plugin itself is not touched.
+          elicitation_dialog). If the everything-claude-code plugin is installed, it
+          also turns off that plugin's osascript banner (the one macOS shows as Script
+          Editor) through its ECC_DISABLED_HOOKS switch; the plugin itself is not
+          touched. Without the plugin, that switch is left out. If you install the
+          plugin later, run install again.
 uninstall removes exactly those entries.
 
 Before any change, a copy of the file is written next to it as
@@ -22,6 +24,7 @@ COMMAND = f'h="{HOOK}"; [ -x "$h" ] && "$h"; exit 0'
 MARKER = "Peek.app/Contents/Resources/peek-hook"
 ECC_ID = "stop:desktop-notify"
 EVENTS = {"Stop": None, "Notification": "permission_prompt|elicitation_dialog"}
+ECC_PLUGIN = "everything-claude-code"
 
 
 def load(path):
@@ -56,7 +59,18 @@ def ecc_ids(env):
     return [i.strip() for i in env.get("ECC_DISABLED_HOOKS", "").split(",") if i.strip()]
 
 
-def install(data):
+def ecc_installed(plugins_path):
+    """True when Claude Code's installed-plugins list has everything-claude-code from any
+    marketplace. A missing or unreadable list counts as not installed."""
+    try:
+        with open(plugins_path, encoding="utf-8") as f:
+            plugins = json.load(f).get("plugins", {})
+    except (OSError, ValueError, AttributeError):
+        return False
+    return any(key.split("@")[0] == ECC_PLUGIN for key in plugins)
+
+
+def install(data, ecc=True):
     hooks = data.setdefault("hooks", {})
     for event, matcher in EVENTS.items():
         groups = hooks.setdefault(event, [])
@@ -65,6 +79,8 @@ def install(data):
             if matcher:
                 group["matcher"] = matcher
             groups.append(group)
+    if not ecc:
+        return data
     env = data.setdefault("env", {})
     ids = ecc_ids(env)
     if ECC_ID not in ids:
@@ -98,9 +114,17 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("action", choices=["install", "uninstall"])
     parser.add_argument("--settings", default=os.path.expanduser("~/.claude/settings.json"))
+    parser.add_argument("--plugins", default=os.path.expanduser("~/.claude/plugins/installed_plugins.json"))
     args = parser.parse_args()
     before = load(args.settings)
-    after = (install if args.action == "install" else uninstall)(json.loads(json.dumps(before)))
+    copy = json.loads(json.dumps(before))
+    if args.action == "install":
+        ecc = ecc_installed(args.plugins)
+        after = install(copy, ecc)
+        if not ecc:
+            print("install: everything-claude-code is not installed, so its banner switch is left out")
+    else:
+        after = uninstall(copy)
     if after == before:
         print(f"{args.action}: nothing to change in {args.settings}")
         return
