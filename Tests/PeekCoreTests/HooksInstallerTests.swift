@@ -60,6 +60,14 @@ import Testing
         #expect(try read() == original as NSDictionary)
     }
 
+    @Test func existingNonAsciiTextIsWrittenBackLiterally() throws {
+        try Data(#"{"note": "local only — no remote database touched"}"#.utf8).write(to: settings)
+        _ = try run("install")
+        let text = try String(contentsOf: settings, encoding: .utf8)
+        #expect(text.contains("local only — no remote database touched"))
+        #expect(!text.contains(#"\u2014"#))   // the JSON escape Python writes by default
+    }
+
     @Test func aBackupIsWrittenBeforeChanging() throws {
         try write(["model": "opus"])
         _ = try run("install")

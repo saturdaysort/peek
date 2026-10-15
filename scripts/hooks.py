@@ -27,7 +27,7 @@ EVENTS = {"Stop": None, "Notification": "permission_prompt|elicitation_dialog"}
 def load(path):
     if not os.path.exists(path):
         return {}
-    with open(path) as f:
+    with open(path, encoding="utf-8") as f:
         text = f.read()
     return json.loads(text) if text.strip() else {}
 
@@ -37,8 +37,10 @@ def save(path, data):
         shutil.copy2(path, f"{path}.peek-backup-{time.strftime('%Y%m%d-%H%M%S')}")
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
     tmp = f"{path}.peek-tmp"
-    with open(tmp, "w") as f:
-        json.dump(data, f, indent=2)
+    with open(tmp, "w", encoding="utf-8") as f:
+        # ensure_ascii=False keeps characters like em dashes as written, so the only lines
+        # that change in the user's file are the ones Peek adds or removes.
+        json.dump(data, f, indent=2, ensure_ascii=False)
         f.write("\n")
     os.replace(tmp, path)
 
