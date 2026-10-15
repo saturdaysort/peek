@@ -105,3 +105,8 @@ Two traps here, both silent:
 - **Open at login stops working:** it uses `SMAppService` with an ad-hoc signature. The log
   line `login item status N` shows its state: 1 is enabled; 2 means macOS wants approval in
   System Settings > General > Login Items.
+- **Open at login points at a deleted copy:** `SMAppService.mainApp` registers whichever
+  copy of Peek calls it, and Peek calls it at every launch. Opening `build/Peek.app` (from
+  Finder, or `open build/Peek.app`) can register that copy as the login item, and the next
+  `scripts/build.sh` deletes it. Only ever launch `~/Applications/Peek.app`;
+  `scripts/install.sh` does that for you.
