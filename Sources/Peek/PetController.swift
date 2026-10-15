@@ -115,9 +115,10 @@ final class PetController {
             }
         }
 
-        // The bubble's countdown pauses while the pointer is over the pet or the bubble.
+        // The bubble's countdown pauses while the pointer is over the pet or the bubble, and while
+        // the right-click menu is open (the pointer is then usually on the menu, not the pet).
         let hovering = view.containsMouse
-        if director.phase == .showing, motion == nil, !hovering {
+        if director.phase == .showing, motion == nil, !hovering, !view.isMenuOpen {
             bubbleRemaining -= dt
             if bubbleRemaining <= 0 { perform { $0.bubbleTimedOut() } }
         }

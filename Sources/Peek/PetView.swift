@@ -80,7 +80,24 @@ final class PetView: NSView {
         }
     }
 
-    override func menu(for event: NSEvent) -> NSMenu? { menuProvider?() }
+    /// True while the right-click menu is open. The bubble's countdown treats it like hovering,
+    /// so the pet doesn't duck while you're choosing what to do with its message.
+    private(set) var isMenuOpen = false
+    private var menuObserver: NSObjectProtocol?
+
+    override func menu(for event: NSEvent) -> NSMenu? {
+        guard let menu = menuProvider?() else { return nil }
+        isMenuOpen = true
+        if let menuObserver { NotificationCenter.default.removeObserver(menuObserver) }
+        menuObserver = NotificationCenter.default.addObserver(forName: NSMenu.didEndTrackingNotification,
+                                                              object: menu, queue: .main) { [weak self] _ in
+            guard let self else { return }
+            self.isMenuOpen = false
+            if let observer = self.menuObserver { NotificationCenter.default.removeObserver(observer) }
+            self.menuObserver = nil
+        }
+        return menu
+    }
 
     // MARK: Drawing
 
