@@ -21,16 +21,26 @@ final class PetController {
     private var bubbleRemaining = Timing.bubbleStays
     private var shownMessage: Message?
     private var shownAt = 0.0
+    /// Set while a peek walks off one screen to reappear on the screen you moved to.
+    private var relocatingTo: NSScreen?
+    private var lastFollowCheck = 0.0
 
     init(quietUntil: Date? = nil) {
         director = Director(quietUntil: quietUntil)
         panel.contentView = view
-        view.onClick = { [weak self] in self?.perform { $0.clicked() } }
-        view.onNext = { [weak self] in self?.perform { $0.next() } }
+        // Clicks are ignored for the moment a peek is walking off to another screen.
+        view.onClick = { [weak self] in
+            guard let self, self.relocatingTo == nil else { return }
+            self.perform { $0.clicked() }
+        }
+        view.onNext = { [weak self] in
+            guard let self, self.relocatingTo == nil else { return }
+            self.perform { $0.next() }
+        }
         view.onScroll = { [weak self] delta in self?.perform { $0.scroll(by: delta) } }
         NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification,
                                                object: nil, queue: .main) { [weak self] _ in
-            self?.panel.anchor()
+            self?.panel.reanchor()
         }
     }
 
@@ -46,11 +56,13 @@ final class PetController {
             }
             let title = SessionDirectory.displayTitle(info: sessions.info(for: event.hostSessionId), cwd: event.cwd)
             let message = Message(event: event, title: title)
+            followNow()
             perform { $0.receive(message, now: Date()) }
         }
     }
 
     func greet() {
+        followNow()
         perform { $0.greet() }
     }
 
@@ -75,13 +87,54 @@ final class PetController {
     private var now: Double { ProcessInfo.processInfo.systemUptime }
 
     private func start(_ animation: Director.Animation) {
+        if let target = relocatingTo {
+            relocatingTo = nil
+            if animation != .leave {
+                // The pet is needed now (a message arrived mid-move): skip the rest of the walk.
+                panel.anchor(to: target)
+                pose = Pose(x: 0, y: -Geometry.duckDepth)
+            }
+        }
+        beginMotion(animation)
+        if !panel.isVisible {
+            if let screen = ActiveScreen.current() { panel.anchor(to: screen) }
+            panel.orderFrontRegardless()
+        }
+    }
+
+    private func beginMotion(_ animation: Director.Animation) {
         motion = Motion(animation, from: pose)
         motionStart = now
         if clock != nil { scheduleClock(every: Timing.tickInterval(phase: director.phase, animating: true)) }
-        if !panel.isVisible {
-            panel.anchor()
-            panel.orderFrontRegardless()
-        }
+    }
+
+    // MARK: Following you between screens
+
+    /// A peek that's just sitting on the wrong screen walks off and reappears on yours.
+    private func followIfNeeded(at t: Double) {
+        guard t - lastFollowCheck >= 1, relocatingTo == nil else { return }
+        lastFollowCheck = t
+        guard let active = ActiveScreen.current(),
+              ScreenPicker.shouldFollow(phase: director.phase, animating: motion != nil,
+                                        petScreen: panel.screenID, activeScreen: active.displayID) else { return }
+        relocatingTo = active
+        beginMotion(.leave)
+    }
+
+    /// Before the pet pops up out of a peek for a new message or a greeting: if it's sitting on
+    /// a screen you've left, put it on yours first, since the walk-over would only delay the news.
+    private func followNow() {
+        guard director.phase == .peeking, motion == nil, relocatingTo == nil,
+              let active = ActiveScreen.current(), active.displayID != panel.screenID else { return }
+        panel.anchor(to: active)
+        pose = Pose(x: 0, y: -Geometry.duckDepth)
+    }
+
+    private func finishRelocation(to screen: NSScreen) {
+        relocatingTo = nil
+        panel.anchor(to: screen)
+        pose = Pose(x: Geometry.offstage, y: -Geometry.duckDepth)
+        beginMotion(.enterPeeking)
     }
 
     private func startClock() {
@@ -110,7 +163,8 @@ final class PetController {
                 motion = nil
                 switch m.animation {
                 case .enter, .enterPeeking: perform { $0.entranceFinished() }
-                case .leave: perform { $0.leaveFinished() }
+                case .leave:
+                    if let target = relocatingTo { finishRelocation(to: target) } else { perform { $0.leaveFinished() } }
                 case .hop, .duck, .unduck: break
                 }
             }
@@ -124,6 +178,7 @@ final class PetController {
             if bubbleRemaining <= 0 { perform { $0.bubbleTimedOut() } }
         }
 
+        followIfNeeded(at: t)
         render(at: t)
         panel.ignoresMouseEvents = !hovering   // clicks anywhere else fall through to the app below
 

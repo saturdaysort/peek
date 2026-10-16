@@ -11,6 +11,8 @@ session.
 - Right-click for Dismiss, Dismiss all, Quiet for 1 hour, Sound, Open at login, and Quit Peek.
 - Open Peek from Finder or Spotlight while it's running to call the pet out.
 - It stays quiet about the session Claude is already showing you.
+- With more than one display, it appears on the one you're working on (where your frontmost
+  window is), and a waiting peek follows you when you switch.
 
 ## Install
 

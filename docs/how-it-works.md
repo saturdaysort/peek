@@ -70,6 +70,20 @@ It holds `title`, `isArchived`, `lastFocusedAt`, and more.
 - Switching to a session rewrites its file, so the focused session is always among those 5.
 - If the layout changes, titles fall back to the project folder's name. Nothing breaks.
 
+## Which display the pet uses
+
+`Sources/Peek/ActiveScreen.swift` asks macOS for the window list
+(`CGWindowListCopyWindowInfo`) and takes the frontmost app's frontmost normal window. The
+window list shares positions and owners with any app; only titles would need the Screen
+Recording permission, and Peek doesn't read them. `ScreenPicker` (in PeekCore, tested) then
+picks the screen holding most of that window, else the screen under the pointer, else the
+main screen.
+
+One trap when checking this by hand: the window list measures from the main screen's
+top-left with y growing down, while screen frames measure from its bottom-left with y
+growing up. `ScreenPicker.cocoaRect` flips between them. On the dev Mac the Studio Display's
+top edge sits at a negative window-list y (-451), which looks wrong but isn't.
+
 ## The hook-to-app hand-off
 
 `hook/peek-hook` writes `<epoch-ms>-<pid>.event` into

@@ -90,14 +90,27 @@ the design looks the way it does, and none of them are documented by Anthropic.
 
 ### Placement
 
-- Bottom-right of the main display (the one with the menu bar), using the
-  visible frame so it sits above the Dock. It is inset 12 pt from the right.
+- Bottom-right of the display you're working on, using the visible frame so it
+  sits above that display's Dock. It is inset 12 pt from the right.
   Its feet stand on the bottom edge of the visible frame (inset 0), so ducking
   reads as sinking behind that edge. The window clips everything past the
   right and bottom edges.
 - Floats above normal windows (status-bar level), on every Space, and over
   full-screen apps.
-- Re-anchors when displays or the Dock change.
+- **Which display** (changed 2026-10-16; it used to always be the menu-bar
+  screen): the one holding your frontmost window, which is also the one whose
+  menu bar is active. With no window in front, the screen under the mouse
+  pointer; failing that, the main screen. The rule is `ScreenPicker` in
+  PeekCore. Window positions come from the system window list, which shares
+  bounds (not titles or contents) without any permission.
+- It picks the display each time it walks in, and when you open Peek by hand.
+- While the bubble is out it stays put. A peek that is just sitting there checks
+  once a second; if your active display has changed, it walks off and walks in
+  on the new one, still ducked. Clicks are ignored for the moment it is walking
+  off. If a message arrives during or just before a move, the pet skips the walk
+  and pops up on your active display.
+- Re-anchors when displays or the Dock change: same display if it is still
+  connected, else your active one.
 - When there are no messages it is fully off screen and its window is ordered
   out, so it never intercepts a click.
 

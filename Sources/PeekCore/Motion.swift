@@ -68,7 +68,7 @@ public struct Motion: Sendable {
     public var duration: Double {
         switch animation {
         case .duck: Timing.duck
-        case .unduck: Timing.unduck
+        case .unduck: walkDuration + Timing.unduck
         default: walkDuration + Double(hops) * 2 * Timing.hopHalf
         }
     }
@@ -81,7 +81,11 @@ public struct Motion: Sendable {
         case .duck:
             return Pose(x: from.x, y: stepped(from: from.y, to: -Geometry.duckDepth, progress: t / Timing.duck, steps: 6))
         case .unduck:
-            return Pose(x: from.x, y: stepped(from: from.y, to: 0, progress: t / Timing.unduck, steps: 3))
+            // Walk home still ducked first (a click can land mid-walk), then pop up.
+            if t < walkDuration {
+                return Pose(x: snapped(from.x * (1 - t / walkDuration)), y: from.y, walking: true)
+            }
+            return Pose(x: 0, y: stepped(from: from.y, to: 0, progress: (t - walkDuration) / Timing.unduck, steps: 3))
         default:
             break
         }
@@ -98,9 +102,9 @@ public struct Motion: Sendable {
     private var walkTarget: Double? {
         switch animation {
         // A hop walks home first: a click during the walk-in can start one from mid-walk.
-        case .enter, .enterPeeking, .hop: 0
+        case .enter, .enterPeeking, .hop, .unduck: 0
         case .leave: Geometry.offstage
-        case .duck, .unduck: nil
+        case .duck: nil
         }
     }
 

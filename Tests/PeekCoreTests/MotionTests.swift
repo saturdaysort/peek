@@ -42,6 +42,13 @@ private func close(_ a: Double, _ b: Double) -> Bool { abs(a - b) < 1e-9 }
         #expect(Motion(.unduck, from: Pose(x: 0, y: -30)).pose(at: Timing.unduck) == .home)
     }
 
+    @Test func unduckFromMidWalkWalksHomeFirst() {
+        // Clicking a peek while it walks in (after following you to another screen).
+        let m = Motion(.unduck, from: Pose(x: 50, y: -30))
+        #expect(m.pose(at: 0.05) == Pose(x: 45, y: -30, walking: true))
+        #expect(m.pose(at: m.duration) == .home)
+    }
+
     @Test func hopGoesUpThenDown() {
         let m = Motion(.hop, from: .home)
         #expect(close(m.duration, 0.22))

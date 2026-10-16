@@ -24,9 +24,19 @@ final class PetPanel: NSPanel {
     override var canBecomeKey: Bool { false }
     override var canBecomeMain: Bool { false }
 
-    func anchor() {
-        guard let screen = NSScreen.screens.first else { return }
+    /// The display the pet is on, by display ID.
+    private(set) var screenID: CGDirectDisplayID?
+
+    /// Bottom-right of that screen's visible frame, above its Dock.
+    func anchor(to screen: NSScreen) {
+        screenID = screen.displayID
         let visible = screen.visibleFrame
         setFrameOrigin(NSPoint(x: visible.maxX - Self.size.width, y: visible.minY))
+    }
+
+    /// After displays change: stay on the same screen if it's still connected, else the active one.
+    func reanchor() {
+        let same = NSScreen.screens.first { $0.displayID != nil && $0.displayID == screenID }
+        if let screen = same ?? ActiveScreen.current() { anchor(to: screen) }
     }
 }
