@@ -44,7 +44,8 @@ private func showing(_ messages: Message...) -> Director {
         var d = showing(msg("a"))
         #expect(d.receive(msg("b"), now: now) == [.chirp])
         #expect(d.bubbleMessage == msg("a"))
-        #expect(d.badgeCount == 1)
+        #expect(d.pager == Director.Pager(position: 1, total: 2))
+        #expect(d.badgeCount == 0)   // the counter in the bubble says it instead
     }
 
     @Test func timeoutDucksToAPeek() {
@@ -68,7 +69,8 @@ private func showing(_ messages: Message...) -> Director {
         _ = d.bubbleTimedOut()
         #expect(d.receive(msg("b"), now: now) == [.chirp, .animate(.unduck), .restartBubbleTimer])
         #expect(d.bubbleMessage == msg("b"))
-        #expect(d.badgeCount == 1)
+        #expect(d.pager == Director.Pager(position: 2, total: 2))
+        #expect(d.badgeCount == 0)
     }
 
     @Test func clickOpensTheSessionThenShowsTheNext() {
@@ -112,6 +114,54 @@ private func showing(_ messages: Message...) -> Director {
         _ = d.scroll(by: 5)
         #expect(d.bubbleMessage == msg("c"))
         #expect(d.scroll(by: 1) == [])
+    }
+
+    @Test func nextFlipsAndWrapsAround() {
+        var d = showing(msg("a"), msg("b"), msg("c"))
+        #expect(d.next() == [.restartBubbleTimer])
+        #expect(d.bubbleMessage == msg("b"))
+        _ = d.next()
+        #expect(d.bubbleMessage == msg("c"))
+        _ = d.next()
+        #expect(d.bubbleMessage == msg("a"))
+    }
+
+    @Test func nextNeedsSomethingToFlipTo() {
+        var single = showing(msg("a"))
+        #expect(single.next() == [])
+        var peeking = showing(msg("a"), msg("b"))
+        _ = peeking.bubbleTimedOut()
+        #expect(peeking.next() == [])
+        var greeting = Director()
+        _ = greeting.greet()
+        _ = greeting.entranceFinished()
+        #expect(greeting.next() == [])
+    }
+
+    @Test func pagerCountsFromTheOldest() {
+        var d = showing(msg("a"), msg("b"), msg("c"))
+        #expect(d.pager == Director.Pager(position: 1, total: 3))
+        #expect(d.pager?.label == "1 of 3")
+        _ = d.next()
+        #expect(d.pager == Director.Pager(position: 2, total: 3))
+        _ = d.clicked()   // opens b; a and c are left, and the oldest shows
+        #expect(d.pager == Director.Pager(position: 1, total: 2))
+    }
+
+    @Test func pagerOnlyAppearsWithTwoOrMoreAndTheBubbleOut() {
+        var d = showing(msg("a"))
+        #expect(d.pager == nil)
+        _ = d.receive(msg("b"), now: now)
+        #expect(d.pager == Director.Pager(position: 1, total: 2))
+        _ = d.bubbleTimedOut()
+        #expect(d.pager == nil)
+    }
+
+    @Test func badgeOnlyShowsWhilePeeking() {
+        var d = showing(msg("a"), msg("b"))
+        #expect(d.badgeCount == 0)
+        _ = d.bubbleTimedOut()
+        #expect(d.badgeCount == 2)
     }
 
     @Test func dismissRemovesWithoutOpening() {

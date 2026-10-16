@@ -25,6 +25,21 @@ public struct Director: Sendable {
         case restartBubbleTimer
     }
 
+    /// The "1 of 3" counter and "Next >" button in the bubble, when more than one message waits.
+    public struct Pager: Sendable, Equatable {
+        public static let nextTitle = "Next >"
+
+        public let position: Int
+        public let total: Int
+
+        public init(position: Int, total: Int) {
+            self.position = position
+            self.total = total
+        }
+
+        public var label: String { "\(position) of \(total)" }
+    }
+
     public static let greetingTitle = "Peek"
     public static let greetingText = "Nothing new"
 
@@ -52,13 +67,16 @@ public struct Director: Sendable {
         return queue.current
     }
 
-    /// With the bubble out: the others waiting. While peeking: everything unread.
+    /// Only while peeking, when it is the only sign of what's unread. With the bubble out, the
+    /// pager's counter says the same thing more clearly.
     public var badgeCount: Int {
-        switch phase {
-        case .peeking: queue.count
-        case .entering, .showing: isGreeting ? 0 : max(0, queue.count - 1)
-        case .hidden, .leaving: 0
-        }
+        phase == .peeking ? queue.count : 0
+    }
+
+    /// Counter and Next button for the bubble; nil unless it is out with two or more messages.
+    public var pager: Pager? {
+        guard phase == .showing, !isGreeting, queue.count > 1 else { return nil }
+        return Pager(position: queue.currentIndex + 1, total: queue.count)
     }
 
     // MARK: Inputs
@@ -122,6 +140,13 @@ public struct Director: Sendable {
         case .hidden, .leaving:
             return []
         }
+    }
+
+    /// The bubble's "Next >" button: show the next message (wrapping) without opening anything.
+    public mutating func next() -> [Effect] {
+        guard pager != nil else { return [] }
+        queue.next()
+        return [.restartBubbleTimer]
     }
 
     public mutating func scroll(by delta: Int) -> [Effect] {

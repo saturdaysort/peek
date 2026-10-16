@@ -63,6 +63,18 @@ private func msg(_ name: String, _ text: String = "t") -> Message {
         #expect(q.current == msg("a"))
     }
 
+    @Test func nextWrapsToTheOldest() {
+        var q = MessageQueue()
+        for name in ["a", "b"] { q.upsert(msg(name)) }
+        q.next()
+        #expect(q.current == msg("b"))
+        q.next()
+        #expect(q.current == msg("a"))
+        var empty = MessageQueue()
+        empty.next()
+        #expect(empty.current == nil)
+    }
+
     @Test func emptyQueueIsSafe() {
         var q = MessageQueue()
         q.step(1)

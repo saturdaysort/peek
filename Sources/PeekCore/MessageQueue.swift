@@ -50,6 +50,12 @@ public struct MessageQueue: Sendable, Equatable {
         currentIndex = 0
     }
 
+    /// The "Next >" button: one step forward, wrapping from the newest back to the oldest.
+    public mutating func next() {
+        guard !items.isEmpty else { return }
+        currentIndex = (currentIndex + 1) % items.count
+    }
+
     /// Moves through the queue, stopping at either end.
     public mutating func step(_ delta: Int) {
         currentIndex += delta

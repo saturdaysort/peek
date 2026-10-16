@@ -40,6 +40,7 @@ import Testing
         #expect(Sprite.Palette.clay == 0xD97757)
         #expect(Sprite.Palette.ink == 0x1F1A17)
         #expect(Sprite.Palette.paper == 0xFFFDF8)
+        #expect(Sprite.Palette.clayDark == 0xA9502F)
         #expect(Sprite.color("o") == 0xD97757)
         #expect(Sprite.color("k") == 0x1F1A17)
         #expect(Sprite.color("p") == 0xFFFDF8)

@@ -1,7 +1,8 @@
 import AppKit
 import PeekCore
 
-/// Size and placement of the speech bubble for one message, measured once per message.
+/// Size and placement of the speech bubble for one message, measured once per message (and per
+/// counter value, when several are waiting).
 struct BubbleLayout {
     static let maxWidth: CGFloat = 248
     static let minWidth: CGFloat = 120
@@ -13,34 +14,56 @@ struct BubbleLayout {
     static let overlap: CGFloat = 14
     /// Space between the pet's head and the bubble's bottom edge, where the tail hangs.
     static let lift: CGFloat = 17
+    /// The "1 of 3 ... Next >" row under the message.
+    static let footerGap: CGFloat = 6
+    static let footerHeight: CGFloat = 16
+    static let chipPadding: CGFloat = 4
+    static let counterGap: CGFloat = 12
 
     let message: Message
+    let pager: Director.Pager?
     let frame: NSRect
     let titleRect: NSRect
     let bodyRect: NSRect
     let tailOrigin: NSPoint
+    /// The counter's text line, and the clickable Next button. Nil without a pager.
+    let counterRect: NSRect?
+    let nextRect: NSRect?
 
-    init(message: Message, petHome: NSRect) {
+    init(message: Message, pager: Director.Pager?, petHome: NSRect) {
         self.message = message
+        self.pager = pager
         let chrome = 2 * (Self.border + Self.padding)
         let maxText = Self.maxWidth - chrome
         let titleWidth = Self.title(for: message, bangOn: true).size().width
         let body = Self.text(message.text, color: Palette.ink, lineBreak: .byWordWrapping)
-        let textWidth = min(maxText, ceil(max(titleWidth, body.size().width)))
+        let counterWidth = pager.map { ceil(Self.counterString($0).size().width) } ?? 0
+        let chipWidth = pager == nil ? 0 : ceil(Self.nextString().size().width) + 2 * Self.chipPadding
+        let footerWidth = pager == nil ? 0 : counterWidth + Self.counterGap + chipWidth
+        let textWidth = min(maxText, ceil(max(titleWidth, body.size().width, footerWidth)))
         let bodyHeight = body.boundingRect(with: NSSize(width: textWidth, height: .greatestFiniteMagnitude),
                                            options: .usesLineFragmentOrigin).height
         let lines = max(1, min(Self.bodyLines, Int((bodyHeight / PixelFont.lineHeight).rounded(.up))))
+        let footer = pager == nil ? 0 : Self.footerGap + Self.footerHeight
 
         let width = max(Self.minWidth, textWidth + chrome).rounded(.up)
-        let height = (CGFloat(1 + lines) * PixelFont.lineHeight + Self.titleGap + chrome).rounded(.up)
+        let height = (CGFloat(1 + lines) * PixelFont.lineHeight + Self.titleGap + footer + chrome).rounded(.up)
         frame = NSRect(x: (petHome.minX + Self.overlap - width).rounded(), y: petHome.maxY + Self.lift,
                        width: width, height: height)
 
         let inner = frame.insetBy(dx: Self.border + Self.padding, dy: Self.border + Self.padding)
         titleRect = NSRect(x: inner.minX, y: inner.maxY - PixelFont.lineHeight,
                            width: inner.width, height: PixelFont.lineHeight)
-        bodyRect = NSRect(x: inner.minX, y: inner.minY,
+        bodyRect = NSRect(x: inner.minX, y: inner.minY + footer,
                           width: inner.width, height: CGFloat(lines) * PixelFont.lineHeight)
+        if pager != nil {
+            let lineY = inner.minY + ((Self.footerHeight - PixelFont.lineHeight) / 2).rounded()
+            counterRect = NSRect(x: inner.minX, y: lineY, width: counterWidth, height: PixelFont.lineHeight)
+            nextRect = NSRect(x: inner.maxX - chipWidth, y: inner.minY, width: chipWidth, height: Self.footerHeight)
+        } else {
+            counterRect = nil
+            nextRect = nil
+        }
         // The tail's top row sits on the bottom border, near the right edge, pointing at the pet.
         tailOrigin = NSPoint(x: frame.maxX - 30,
                              y: frame.minY - CGFloat(Sprite.tail.count - 1) * Sprite.tailPixel)
@@ -58,6 +81,14 @@ struct BubbleLayout {
         let end = text.index(text.startIndex, offsetBy: min(max(revealed, 0), text.count))
         s.addAttribute(.foregroundColor, value: Palette.ink, range: NSRange(text.startIndex..<end, in: text))
         return s
+    }
+
+    static func counterString(_ pager: Director.Pager) -> NSAttributedString {
+        text(pager.label, color: Palette.ink.withAlphaComponent(0.6), lineBreak: .byClipping)
+    }
+
+    static func nextString() -> NSAttributedString {
+        text(Director.Pager.nextTitle, color: Palette.paper, lineBreak: .byClipping)
     }
 
     private static func title(for message: Message, bangOn: Bool) -> NSAttributedString {

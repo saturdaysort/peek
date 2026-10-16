@@ -26,6 +26,7 @@ final class PetController {
         director = Director(quietUntil: quietUntil)
         panel.contentView = view
         view.onClick = { [weak self] in self?.perform { $0.clicked() } }
+        view.onNext = { [weak self] in self?.perform { $0.next() } }
         view.onScroll = { [weak self] delta in self?.perform { $0.scroll(by: delta) } }
         NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification,
                                                object: nil, queue: .main) { [weak self] _ in
@@ -153,7 +154,9 @@ final class PetController {
             revealed: bubble.map { Int(Double($0.text.count) * min(1, age / Timing.typeOn)) } ?? 0,
             popScale: min(1, (age / Timing.bubblePop * 4).rounded(.up) / 4),
             bangOn: Int(t / Timing.bangBlink) % 2 == 0,
-            badge: director.badgeCount
+            badge: director.badgeCount,
+            pager: director.pager,
+            nextHovered: view.isMouseOverNext
         )
     }
 }

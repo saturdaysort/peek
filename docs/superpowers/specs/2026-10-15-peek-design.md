@@ -142,10 +142,11 @@ peeking --arrival--> showing (the new message)
   show above the screen edge. A count badge shows how many messages are unread.
 - **Leaving:** over 900 ms it scuttles right, off screen, then the window is
   ordered out.
-- **Arrival while a bubble is showing:** the new message is queued and the badge
-  increments. The current bubble is not interrupted.
-- **Badge:** while the bubble is out it shows the *others* waiting (hidden when
-  0). While peeking it shows the total.
+- **Arrival while a bubble is showing:** the new message is queued and the
+  bubble's counter updates. The current bubble is not interrupted.
+- **Badge:** shown only while peeking, with the total unread. While the bubble is
+  out, the counter row says the same thing (changed 2026-10-16, when the Next
+  button was added).
 - Motion is stepped (`steps()`-style), not smoothly eased, to read as pixel art.
 
 ### Queue
@@ -154,7 +155,16 @@ peeking --arrival--> showing (the new message)
 - One message per session: a newer message from the same session replaces the
   older one in place.
 - Capped at 20; past that the oldest is dropped.
-- Scroll over the bubble to flip through the queue without opening anything.
+- With two or more messages, the bubble has a bottom row: a dimmed "1 of 3"
+  counter (counted from the oldest) on the left and a "Next >" button on the
+  right (ink, darker clay `#A9502F` while pointed at). Next shows the following
+  message, wraps from the last back to the first, restarts the 10 s countdown,
+  and never opens a session. Clicking anywhere else on the bubble or pet still
+  opens the message shown. The row appears at once rather than typing on.
+  Added 2026-10-16 because scrolling, the only way to flip before, wasn't
+  discoverable.
+- Scrolling over the bubble also flips through the queue, both ways, stopping at
+  either end.
 - In memory only. Inbox files are deleted as soon as they are ingested.
 
 ### Interaction

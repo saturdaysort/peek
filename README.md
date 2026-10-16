@@ -4,7 +4,8 @@ A small pixel pet that pops out of the bottom-right corner of your screen when a
 Desktop Code session finishes or needs you. Click its speech bubble to jump straight to that
 session.
 
-- Messages queue oldest first, one per session. Scroll over the bubble to flip through them.
+- Messages queue oldest first, one per session. With more than one waiting, the bubble shows
+  "1 of 3" and a "Next >" button to flip through them (scrolling over it works too).
 - After 10 seconds the pet ducks so only its eyes peek over the edge, with a count of
   unread messages. Click the peek to bring them back.
 - Right-click for Dismiss, Dismiss all, Quiet for 1 hour, Sound, Open at login, and Quit Peek.

@@ -46,6 +46,8 @@ public enum Sprite {
         public static let clay: UInt32 = 0xD97757
         public static let ink: UInt32 = 0x1F1A17
         public static let paper: UInt32 = 0xFFFDF8
+        /// Hover color for the bubble's Next button; paper text on it stays readable.
+        public static let clayDark: UInt32 = 0xA9502F
     }
 
     /// Rows from top to bottom. `stride` shows the mid-step legs; `blinking` closes the eyes.

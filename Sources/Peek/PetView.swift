@@ -13,12 +13,16 @@ final class PetView: NSView {
         var popScale = 0.0
         var bangOn = true
         var badge = 0
+        /// "1 of 3" and the Next button, when more than one message waits.
+        var pager: Director.Pager?
+        var nextHovered = false
     }
 
     var state = State() {
         didSet { if state != oldValue { needsDisplay = true } }
     }
     var onClick: (() -> Void)?
+    var onNext: (() -> Void)?
     var onScroll: ((Int) -> Void)?
     var menuProvider: (() -> NSMenu?)?
 
@@ -39,7 +43,9 @@ final class PetView: NSView {
 
     private var layout: BubbleLayout? {
         guard let message = state.bubble else { return nil }
-        if cachedLayout?.message != message { cachedLayout = BubbleLayout(message: message, petHome: homeRect) }
+        if cachedLayout?.message != message || cachedLayout?.pager != state.pager {
+            cachedLayout = BubbleLayout(message: message, pager: state.pager, petHome: homeRect)
+        }
         return cachedLayout
     }
 
@@ -55,10 +61,20 @@ final class PetView: NSView {
         return NSRect(x: petRect.maxX - width + 3, y: petRect.maxY - 3, width: width, height: PixelFont.lineHeight)
     }
 
+    private var mousePoint: NSPoint? {
+        guard let window else { return nil }
+        return convert(window.convertPoint(fromScreen: NSEvent.mouseLocation), from: nil)
+    }
+
+    /// True when the pointer is on the bubble's Next button (only once the bubble has fully popped).
+    var isMouseOverNext: Bool {
+        guard let point = mousePoint, state.popScale >= 1, let next = layout?.nextRect else { return false }
+        return next.contains(point)
+    }
+
     /// True when the pointer is over something visible: the pet, the badge, or a fully popped bubble.
     var containsMouse: Bool {
-        guard let window else { return false }
-        let point = convert(window.convertPoint(fromScreen: NSEvent.mouseLocation), from: nil)
+        guard let point = mousePoint else { return false }
         var targets = [petRect.intersection(bounds)]
         if let badge = badgeRect { targets.append(badge) }
         if let layout, state.popScale >= 1 { targets.append(layout.frame) }
@@ -68,7 +84,12 @@ final class PetView: NSView {
     // MARK: Input
 
     override func mouseDown(with event: NSEvent) {
-        if containsMouse { onClick?() }
+        // Next flips to the next message; anywhere else on the bubble or pet opens this one.
+        if isMouseOverNext {
+            onNext?()
+        } else if containsMouse {
+            onClick?()
+        }
     }
 
     override func scrollWheel(with event: NSEvent) {
@@ -141,6 +162,15 @@ final class PetView: NSView {
         let options: NSString.DrawingOptions = [.usesLineFragmentOrigin, .truncatesLastVisibleLine]
         layout.titleString(bangOn: state.bangOn).draw(with: layout.titleRect, options: options)
         layout.bodyString(revealed: state.revealed).draw(with: layout.bodyRect, options: options)
+        if let pager = layout.pager, let counterRect = layout.counterRect, let nextRect = layout.nextRect {
+            BubbleLayout.counterString(pager).draw(with: counterRect, options: options)
+            ctx.setFillColor((state.nextHovered ? Palette.clayDark : Palette.ink).cgColor)
+            ctx.fill(nextRect)
+            let label = nextRect.insetBy(dx: BubbleLayout.chipPadding, dy: 0)
+            let line = NSRect(x: label.minX, y: label.minY + ((label.height - PixelFont.lineHeight) / 2).rounded(),
+                              width: label.width, height: PixelFont.lineHeight)
+            BubbleLayout.nextString().draw(with: line, options: options)
+        }
     }
 
     private func drawBadge(in ctx: CGContext) {
